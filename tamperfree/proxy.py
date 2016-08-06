@@ -30,7 +30,7 @@ class TcpChannel(threading.Thread):
         remote_conn.setblocking(0)
         lst_msg_received = time.clock()
         while lst_msg_received + 2 > time.clock():
-            p1 = self._read_and_send_all(self.conn, remote_conn, fd)
+            p1 = self._read_and_send_all(self.conn, remote_conn)
             p2 = self._read_and_send_all(remote_conn, self.conn, fd)
             if p1 or p2:
                 lst_msg_received = time.clock()
@@ -40,7 +40,7 @@ class TcpChannel(threading.Thread):
     def _read_and_send_all(self, _from, to, fd = None):
         try:
             data = _from.recv(4096)
-            if fd is not None:
+            if fd:
                 fd.write(data)
                 fd.flush()
             to.sendall(data)

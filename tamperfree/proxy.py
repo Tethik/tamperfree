@@ -5,6 +5,7 @@ import time
 import threading
 
 logger = logging.getLogger(__name__)
+CONNECTION_TIMEOUT = 10
 
 class TcpChannel(threading.Thread):
     def __init__(self, conn, outfile):
@@ -29,13 +30,11 @@ class TcpChannel(threading.Thread):
         self.conn.setblocking(0)
         remote_conn.setblocking(0)
         lst_msg_received = time.clock()
-        while lst_msg_received + 2 > time.clock():
-            p1 = self._read_and_send_all(self.conn, remote_conn)
+        while lst_msg_received + CONNECTION_TIMEOUT > time.clock():
+            p1 = self._read_and_send_all(self.conn, remote_conn, fd)
             p2 = self._read_and_send_all(remote_conn, self.conn, fd)
             if p1 or p2:
                 lst_msg_received = time.clock()
-
-
 
     def _read_and_send_all(self, _from, to, fd = None):
         try:
@@ -49,8 +48,6 @@ class TcpChannel(threading.Thread):
             return False
 
 
-
-
 class TCP(threading.Thread):
     """
     Copied/Modified from proxy.py github
@@ -61,8 +58,14 @@ class TCP(threading.Thread):
         self.hostname = hostname
         self.port = port
         self.counter = 1
-        self.started = False
+        self.stop = False
         self.backlog = backlog
+        self.running = False
+
+    def consume_results(self):
+        r = self.results
+        self.results = []
+        return r
 
     def run(self):
         try:
@@ -71,21 +74,24 @@ class TCP(threading.Thread):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind((self.hostname, self.port))
             self.socket.listen(self.backlog)
-            self.started = True
             self.threads = []
+            self.results = []
 
-            while self.started:
+            while not self.stop:
+                self.running = True
                 conn, addr = self.socket.accept()
                 logger.debug('Accepted connection %r at address %r' % (conn, addr))
-                tor = TcpChannel(conn, 'caps/%s.cap' % self.counter)
+                outfile = 'caps/%s.cap' % self.counter
+                self.results.append(outfile)
+                tor = TcpChannel(conn, outfile)
                 self.threads.append(tor)
                 self.counter += 1
                 tor.start()
         except KeyboardInterrupt as e:
-            logger.info('Interrupt exception caught.')
+            logger.info('Interrupt exception caught. Attempting to shut down gracefully')
             for thread in self.threads:
                 if thread.is_alive():
-                    thread.join(2)
+                    thread.join(CONNECTION_TIMEOUT)
                 if thread.is_alive():
                     raise RuntimeError("Proxy-Thread wont stop.")
         except Exception as e:
@@ -95,7 +101,7 @@ class TCP(threading.Thread):
             self.socket.close()
 
     def close(self):
-        self.started = False
+        self.stop = True
 
     def finished(self):
         return all(not thread.is_alive() for thread in self.threads)

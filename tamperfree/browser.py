@@ -7,6 +7,7 @@ from tamperfree.proxy import TCP
 import logging
 import sys
 from time import sleep
+from tamperfree.http import extract_from_capturefile
 
 logger = logging.getLogger(__name__)
 
@@ -66,25 +67,38 @@ class ProxiedBrowser(object):
         logger.info("Fetching {url}".format(url=url))
         self.proxy.consume_results() # clear anything previous, e.g the browsers homepage
         self.driver.get(url)
-        r = self.proxy.consume_results()
-        return r
+        sleep(5)
+        capture_files = self.proxy.consume_results()
+        responses = list()
+        for capture_file in capture_files:
+            for response in extract_from_capturefile(capture_file):
+                logger.info(response.status_line)
+                logger.info(response.headers)
+                logger.info(response.body)
+                responses.append(response.body)
+        return responses
 
     def __exit__(self, type, value, traceback):
+        logging.info("Closing Webdriver")
         self.driver.close()
+        logging.info("Closing Proxy")
         self.proxy.close()
 
 class ProxiedBrowserResponse(object):
     def __init__(self):
         pass
 
-
 if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     with ProxiedBrowser(8899) as b:
         r = b.get("http://ip.blacknode.se/")
+        logging.info("Hashes:")
         for _r in r:
             h = hashlib.sha256()
-            h.update(_r.encode('utf-8'))
+            # logger.info(_r)
+            if isinstance(_r, bytes):
+                h.update(_r)
+            else:
+                h.update(_r.encode('utf-8'))
             logger.info(h.hexdigest())
-            logger.info(_r)

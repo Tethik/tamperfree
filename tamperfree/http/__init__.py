@@ -1,6 +1,6 @@
 import logging
 import string
-from bitstring import ConstBitStream, BitStream
+from bitstring import ConstBitStream, BitStream, Bits
 from tamperfree.http.content_type import _handle_content_type
 from tamperfree.http.content_encoding import _handle_content_encoding
 from tamperfree.http.transfer_encoding import _handle_transfer_encoding
@@ -21,7 +21,7 @@ class HttpResponse(object):
 
 def _parse_response(stream):
     # headers followed by two \r\n
-    pos = stream.find(b'\r\n\r\n', bytealigned=True)[0]
+    pos = stream.find(Bits(bytes=b'\r\n\r\n'), bytealigned=True)[0]
     header_bytes, body = stream[:pos], stream[pos+32:]
     headers = dict()
     header_lines = header_bytes.bytes.decode("ascii").split('\r\n')
@@ -46,7 +46,7 @@ def _parse_response(stream):
     return HttpResponse(status_line, headers, body)
 
 def _parse_request(stream):
-    pos = stream.find(b'\r\n\r\n', bytealigned=True)[0]
+    pos = stream.find(Bits(bytes=b'\r\n\r\n'), bytealigned=True)[0]
     # For now I don't care about the request body.
     header_bytes, _ = stream[:pos], stream[pos+32:]
     headers = dict()
@@ -62,7 +62,7 @@ def extract_from_raw(bytes):
     stream = ConstBitStream(bytes=bytes)
     # Find responses. Needs to be improved. Currently putting HTTP/1.1 in the body or headers could trick this.
     # Also HTTP/2.0 is probably a thing soon.
-    header_positions = [p for p in stream.findall(b'HTTP/1.1', bytealigned=True)]
+    header_positions = [p for p in stream.findall(Bits(bytes=b'HTTP'), bytealigned=True)]
 
     logger.debug(str(header_positions))
     header_positions.append(len(stream))

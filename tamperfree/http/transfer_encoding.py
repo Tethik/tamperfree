@@ -1,5 +1,5 @@
 import logging
-from bitstring import BitStream
+from bitstring import BitStream, Bits
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def _handle_transfer_encoding(headers, body):
 
     while start_pos < len(body):
         body.pos = start_pos
-        i = body.find(b'\r\n', start = start_pos, bytealigned = True)
+        i = body.find(Bits(bytes=b'\r\n'), start = start_pos, bytealigned = True)
         if not i:
             break
         i = i[0]

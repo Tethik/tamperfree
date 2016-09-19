@@ -6,6 +6,7 @@ import threading
 
 logger = logging.getLogger(__name__)
 CONNECTION_TIMEOUT = 10
+TOR_PORT = 9050 #9150
 
 class TcpChannel(threading.Thread):
     def __init__(self, conn, outfile):
@@ -17,7 +18,7 @@ class TcpChannel(threading.Thread):
     def run(self):
         with open(self.outfile, "wb") as fd:
             try:
-                self.remote_conn = socket.create_connection(("127.0.0.1", "9150"))
+                self.remote_conn = socket.create_connection(("127.0.0.1", TOR_PORT))
                 self._proxy(self.remote_conn, fd)
             except Exception as ex:
                 logger.error(ex)
@@ -42,15 +43,19 @@ class TcpChannel(threading.Thread):
                 fd.flush()
             to.sendall(data)
             return True
+        except KeyboardInterrupt as ex:
+            raise ex
         except:
             return False
+
 
     def stop(self):
         self._stop_proxy = True
 
     def close(self):
-        self.remote_conn.close()
-        logger.info('Closing remote socket')
+        if self.remote_conn:
+            self.remote_conn.close()
+            logger.info('Closing remote socket')
         self.conn.close()
         logger.info('Closing client socket')
 
@@ -89,6 +94,8 @@ class TCP(threading.Thread):
                 self.running = True
                 try:
                     conn, addr = self.socket.accept()
+                except KeyboardInterrupt as ex:
+                    raise ex
                 except:
                     continue
                 logger.debug('Accepted connection %r at address %r' % (conn, addr))

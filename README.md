@@ -11,7 +11,10 @@ There may be bugs and/or security vulnerabilities*.
 
 
 ## todo
-1. Auto download tor browser.
-2. Auto update tor browser.
-3. Build verification set(?)
-4.
+1. Auto update tor browser.
+2. Build verification set(?)
+3. Fix Tor setup? (wont work without manual selection of bridge/non-bridge.)
+  * found workaround for this. set torlauncher to start_tor = false in prefs.js, then proxy via normal tor.
+
+## issues
+Does not verify the order of requests. Meaning that the server could perhaps order the scripts in such a way to maliciously get a different behaviour.

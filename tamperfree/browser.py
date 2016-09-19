@@ -15,8 +15,10 @@ class ProxiedBrowser(object):
     def __init__(self, proxy_port):
         self.proxy_port = int(proxy_port)
         self.binary = FirefoxBinary(firefox_path="./tor-browser_en-US/Browser/start-tor-browser", log_file=open("firefox.log", "w"))
-        self.profile = FirefoxProfile(profile_directory="./tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/")
+        self.binary.add_command_line_options("--verbose")
+        self.profile = FirefoxProfile(profile_directory="/home/user/code/python/tamperfree/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/")
         self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
+        self.profile.set_preference("extensions.torlauncher.start_tor", False)
         self.profile.update_preferences()
 
 
@@ -28,8 +30,15 @@ class ProxiedBrowser(object):
             sleep(1)
 
         logger.info("Webdriver starting..")
-        self.driver = webdriver.Firefox(firefox_binary=self.binary, firefox_profile=self.profile)
-
+        try:
+            self.driver = webdriver.Firefox(firefox_binary=self.binary, firefox_profile=self.profile)
+            sleep(2)
+            #self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
+            #self.profile.update_preferences()
+            #input("cont")
+        except Exception as ex:
+            self.proxy.close()
+            raise ex
 
         # Set up the proxy settings.
         # proxy_host = 'localhost'
@@ -43,6 +52,7 @@ class ProxiedBrowser(object):
         # self.profile.set_preference("network.proxy.ftp", proxy_host)
         # self.profile.set_preference("network.proxy.ftp_port", self.proxy_port)
         # self.profile.set_preference("network.proxy.socks", proxy_host)
+        # self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
 
 
         # self.profile.set_preference("extensions.torbutton.banned_ports", "{socks_port},{control_port}".format(self.proxy_port, self.tor_control_port))

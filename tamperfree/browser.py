@@ -8,15 +8,21 @@ import logging
 import sys
 from time import sleep
 from tamperfree.http import extract_from_capturefile
+from tamperfree.tor_process import start_tor
+from os.path import join
 
 logger = logging.getLogger(__name__)
 
+FIREFOX_PATH = "tor-browser_en-US/Browser/start-tor-browser"
+FIREFOX_PROFILE = "tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/"
+
 class ProxiedBrowser(object):
-    def __init__(self, proxy_port):
+    def __init__(self, dir, proxy_port):
+        self.dir = dir
         self.proxy_port = int(proxy_port)
-        self.binary = FirefoxBinary(firefox_path="./tor-browser_en-US/Browser/start-tor-browser", log_file=open("firefox.log", "w"))
+        self.binary = FirefoxBinary(firefox_path=join(dir, FIREFOX_PATH), log_file=open("firefox.log", "w"))
         self.binary.add_command_line_options("--verbose")
-        self.profile = FirefoxProfile(profile_directory="/home/user/code/python/tamperfree/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/")
+        self.profile = FirefoxProfile(profile_directory=join(dir,FIREFOX_PROFILE))
         self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
         self.profile.set_preference("extensions.torlauncher.start_tor", False)
         self.profile.update_preferences()
@@ -25,6 +31,8 @@ class ProxiedBrowser(object):
     def __enter__(self):
         self.proxy = TCP(port=self.proxy_port)
         self.proxy.start()
+        logger.info("Starting Tor process..")
+        self.tor = start_tor(self.dir)
         while not self.proxy.running:
             logger.info("Waiting for proxy to start...")
             sleep(1)
@@ -32,10 +40,7 @@ class ProxiedBrowser(object):
         logger.info("Webdriver starting..")
         try:
             self.driver = webdriver.Firefox(firefox_binary=self.binary, firefox_profile=self.profile)
-            sleep(2)
-            #self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
-            #self.profile.update_preferences()
-            #input("cont")
+            sleep(1)
         except Exception as ex:
             self.proxy.close()
             raise ex
@@ -77,13 +82,13 @@ class ProxiedBrowser(object):
         logger.info("Fetching {url}".format(url=url))
         self.proxy.consume_results() # clear anything previous, e.g the browsers homepage
         self.driver.get(url)
-        sleep(5)
+        sleep(30)
         capture_files = self.proxy.consume_results()
         responses = list()
         for capture_file in capture_files:
             for response in extract_from_capturefile(capture_file):
-                logger.info(response.status_line)
-                logger.info(response.headers)
+                #logger.info(response.status_line)
+                #logger.info(response.headers)
                 logger.info(response.body)
                 responses.append(response.body)
         return responses
@@ -93,6 +98,8 @@ class ProxiedBrowser(object):
         self.driver.close()
         logging.info("Closing Proxy")
         self.proxy.close()
+        logger.info("Closing Tor")
+        self.tor.kill()
 
 class ProxiedBrowserResponse(object):
     def __init__(self):
@@ -101,7 +108,7 @@ class ProxiedBrowserResponse(object):
 if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    with ProxiedBrowser(8899) as b:
+    with ProxiedBrowser("", 8899) as b:
         r = b.get("http://ip.blacknode.se/")
         logging.info("Hashes:")
         for _r in r:

@@ -44,12 +44,11 @@ def load(file):
 def save(object, file):
     json.dump()
 
-def fetch_hashes(url):
+def fetch_hashes(dir, url):
     # Fetches the hashes for a single url.
     stamp = SiteContentStamp()
-    with ProxiedBrowser(8899) as b:
+    with ProxiedBrowser(dir, 8899) as b:
         r = b.get(url)
-        logging.info("Hashes:")
         for _r in r:
             stamp.add(_r)
     return stamp

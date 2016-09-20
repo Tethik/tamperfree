@@ -28,6 +28,7 @@ def download_latest_tor_browser_version(dir):
         format(version=latest_version))
     r = requests.get(url, stream=True)
     localfile = join(dir, filename)
+    print(localfile)
     with open(localfile, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk: # filter out keep-alive new chunks
@@ -35,7 +36,7 @@ def download_latest_tor_browser_version(dir):
 
     logger.info("Extracting...")
     # Decompress using tar xf
-    if call(["tar", "xf", localfile]):
+    if call(["tar", "xf", filename], cwd=dir):
         logger.error("Decompression using `tar` failed. Is tar installed?")
         return
 

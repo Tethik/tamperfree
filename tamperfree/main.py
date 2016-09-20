@@ -10,12 +10,13 @@ def update_browser(args):
 
 def verify(args):
     print(args)
-    s = fetch_hashes(args.url)
+    s = fetch_hashes(args.dir, args.url)
     print(s)
 
 def stamp(args):
     print(args)
-    s = fetch_hashes(args.url)
+    s = fetch_hashes(args.dir, args.url)
+    print(s)
 
 def main(args):
     args.func(args)

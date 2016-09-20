@@ -2,21 +2,30 @@ import sys
 import argparse
 from tamperfree.version import *
 from tamperfree.browser_fetcher import download_latest_tor_browser_version
-from tamperfree.verify import fetch_hashes
+from tamperfree.verify import fetch_hashes, load
 import logging
+from os.path import join
 
 def update_browser(args):
     download_latest_tor_browser_version(args.dir)
 
 def verify(args):
-    print(args)
+    stamped_checksums = load(join(args.dir, "stamped_hashes"))
     s = fetch_hashes(args.dir, args.url)
     print(s)
+    result, reasons = stamped_checksums.verify_against(s)
+    if result:
+        print("Verification succeeded. No tamper detected.")
+    else:
+        print("Verification failed.")
+        for r in reasons:
+            print(r)
+
 
 def stamp(args):
-    print(args)
     s = fetch_hashes(args.dir, args.url)
     print(s)
+    s.save(join(args.dir, "stamped_hashes"))
 
 def main(args):
     args.func(args)

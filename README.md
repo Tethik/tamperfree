@@ -16,6 +16,7 @@ There may be bugs and/or security vulnerabilities*.
 3. Fix Tor setup? (wont work without manual selection of bridge/non-bridge.)
   * found workaround for this. set torlauncher to start_tor = false in prefs.js, then proxy via normal tor.
 4. Better http parsing. Separate requests from responses.
+5. Include filename with hash for better debugging when something is wrong.
 
 ## issues
 Does not verify the order of requests. Meaning that the server could perhaps order the scripts in such a way to maliciously get a different behaviour.

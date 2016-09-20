@@ -19,10 +19,10 @@ class SiteContentStamp(object):
 
         wrong_hashes = [h for h in hashes if h not in self.hashes]
 
-        if wrong_hashes:
+        if len(wrong_hashes) > 0:
             reasons.append(
             "The following hashes do not match with the stamped hashes: ".\
-            format('\n'.join(wrong_hashes)))
+            format(str(wrong_hashes)))
 
         return len(reasons) == 0, reasons
 
@@ -34,15 +34,15 @@ class SiteContentStamp(object):
     def __str__(self):
         return "\n".join(self.hashes)
 
+    def save(self, file):
+        json.dump({ "hashes": list(self.hashes) }, open(file, "w"))
+
 
 def _object_hook(dct):
     return SiteContentStamp(hashes=dct['hashes'])
 
 def load(file):
-    return json.load(file, object_hook=_object_hook)
-
-def save(object, file):
-    json.dump()
+    return json.load(open(file), object_hook=_object_hook)
 
 def fetch_hashes(dir, url):
     # Fetches the hashes for a single url.

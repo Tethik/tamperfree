@@ -21,8 +21,8 @@ class SiteContentStamp(object):
 
         if len(wrong_hashes) > 0:
             reasons.append(
-            "The following hashes do not match with the stamped hashes: ".\
-            format(str(wrong_hashes)))
+            "The following hashes do not match with the stamped hashes:\n{}".\
+            format("\n".join(wrong_hashes)))
 
         return len(reasons) == 0, reasons
 

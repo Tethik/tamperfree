@@ -3,6 +3,7 @@ import logging
 import sys
 import time
 import threading
+from os.path import join
 
 logger = logging.getLogger(__name__)
 CONNECTION_TIMEOUT = 10
@@ -65,7 +66,7 @@ class TCP(threading.Thread):
     Copied/Modified from proxy.py github
     """
 
-    def __init__(self, hostname='127.0.0.1', port=8899, backlog=5):
+    def __init__(self, cap_dir, hostname='127.0.0.1', port=8899, backlog=5):
         threading.Thread.__init__(self)
         self.hostname = hostname
         self.port = port
@@ -74,6 +75,7 @@ class TCP(threading.Thread):
         self.backlog = backlog
         self.running = False
         self.results = []
+        self.cap_dir = cap_dir
 
     def consume_results(self):
         r = self.results
@@ -99,7 +101,7 @@ class TCP(threading.Thread):
                 except:
                     continue
                 logger.debug('Accepted connection %r at address %r' % (conn, addr))
-                outfile = 'caps/%s.cap' % self.counter
+                outfile = join(self.cap_dir, '%s.cap' % self.counter)
                 self.results.append(outfile)
                 tor = TcpChannel(conn, outfile)
                 self.threads.append(tor)

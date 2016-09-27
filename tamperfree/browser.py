@@ -10,6 +10,7 @@ from time import sleep
 from tamperfree.http import extract_from_capturefile
 from tamperfree.tor_process import start_tor
 from os.path import join
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,12 @@ class ProxiedBrowser(object):
 
 
     def __enter__(self):
-        self.proxy = TCP(port=self.proxy_port)
+        cap_dir = join(self.dir, "caps")
+        try:
+            os.makedirs(cap_dir)
+        except:
+            pass
+        self.proxy = TCP(cap_dir=cap_dir, port=self.proxy_port)
         self.proxy.start()
         logger.info("Starting Tor process..")
         self.tor = start_tor(self.dir)
@@ -87,10 +93,7 @@ class ProxiedBrowser(object):
         responses = list()
         for capture_file in capture_files:
             for response in extract_from_capturefile(capture_file):
-                #logger.info(response.status_line)
-                #logger.info(response.headers)
-                logger.info(response.body)
-                responses.append(response.body)
+                responses.append(response)
         return responses
 
     def __exit__(self, type, value, traceback):

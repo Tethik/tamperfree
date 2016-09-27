@@ -31,19 +31,18 @@ def _parse_response(stream):
         headers[splits[0]] = splits[1].strip()
 
     # logger.debug(header_lines[0])
-    logger.debug(headers)
+    logger.info(headers)
     # logger.debug(body)
 
-    body = _handle_transfer_encoding(headers, body)
+    #body = _handle_transfer_encoding(headers, body)
     # logger.debug(body)
-    body = _handle_content_encoding(headers, body)
+    #body = _handle_content_encoding(headers, body)
     # logger.debug(body)
-    body = _handle_content_type(headers, body)
+    #body = _handle_content_type(headers, body)
     # logger.debug(body)
-    if len(body) == 0:
-        body = "" #just making sure that body is a string after all this.
-
-    return HttpResponse(status_line, headers, body)
+    #if len(body) == 0:
+    #    body = "" #just making sure that body is a string after all this.
+    return HttpResponse(status_line, headers, body.tobytes())
 
 def _parse_request(stream):
     pos = stream.find(Bits(bytes=b'\r\n\r\n'), bytealigned=True)[0]
@@ -73,7 +72,9 @@ def extract_from_raw(bytes):
         next_pos = header_positions[i+1]
         request = stream[pos:next_pos]
         response  = _parse_response(request)
-        responses.append(response)
+        request_headers = ["Accept-Encoding", "Accept-Language", "Accept"]
+        if not any(h in response.headers for h in request_headers):
+            responses.append(response.body)
 
     return responses
 

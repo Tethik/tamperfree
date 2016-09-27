@@ -9,6 +9,13 @@ import logging
 DIST_URL = "https://dist.torproject.org/torbrowser/"
 logger = logging.getLogger(__name__)
 
+def _current_tor_browser_version(dir):
+    try:
+        with open(join(dir, "browser_version")) as f:
+            return f.read()
+    except:
+        return "0.0.0"
+
 def download_latest_tor_browser_version(dir):
     try:
         os.makedirs(dir)
@@ -19,6 +26,12 @@ def download_latest_tor_browser_version(dir):
     # Versions are numbers in the form of X.Y.Z
     versions = re.findall('\d\.\d\.\d', dist.text)
     latest_version = sorted(versions)[-1]
+    installed_version = _current_tor_browser_version(dir)
+
+    if installed_version >= latest_version:
+        logger.info("Latest version is already downloaded. Quitting.")
+        return
+
     filename = "tor-browser-linux64-{version}_en-US.tar.xz".\
         format(version=latest_version)
     url = "https://dist.torproject.org/torbrowser/{version}/{filename}".\
@@ -41,6 +54,9 @@ def download_latest_tor_browser_version(dir):
         return
 
     os.remove(localfile)
+    with open(join(dir, "browser_version"), "w") as f:
+        f.write(latest_version)
+
     logger.info("Latest version is downloaded.")
 
 if __name__ == "__main__":

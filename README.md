@@ -5,6 +5,15 @@ that are indistinguishable from real visitor requests.
 *Please note that this is a prototype only. As such I don't want to make any promises of any real security.
 There may be bugs and/or security vulnerabilities*.
 
+# install
+You will need Xvfb in order to run this program. It's so that selenium  
+can run the browser headless.
+
+On fedora:
+`dnf install xorg-x11-server-Xvfb`
+
+I plan to eventually package this nicely.
+
 ## usage
 To update/download the latest tor browser version for selenium to use.
 `tamperfree update_browser`
@@ -25,7 +34,8 @@ path has been tampered with, which paths were missing or which were added.
 
 
 ## todo
-
+1. Tests.
+2. Packaging (fedora for now, since that's what I'm running).
 
 ## issues
 Does not verify the order of requests. Meaning that the server could perhaps(?)
@@ -38,6 +48,10 @@ Lots of folders are created in /tmp/ by Selenium. At least for me on a smaller
 vm this leads to disk space running out.
 
 alert("lel") stops the verification...
+
+The HTTP parsing will probably have to be improved. I think it can be tricked by
+the server sending HTTP status messages inside a body. If this trick works, I
+think the verifier will crash because there are more responses than requests.
 
 # testing
 My burn service: npjhj3yqy7e7xntn.onion

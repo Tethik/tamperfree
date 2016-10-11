@@ -11,6 +11,7 @@ from tamperfree.http import extract_from_capturefile
 from tamperfree.tor_process import start_tor
 from os.path import join
 import os
+from xvfbwrapper import Xvfb
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +22,6 @@ class ProxiedBrowser(object):
     def __init__(self, dir, proxy_port):
         self.dir = dir
         self.proxy_port = int(proxy_port)
-        self.binary = FirefoxBinary(firefox_path=join(dir, FIREFOX_PATH), log_file=open("firefox.log", "w"))
-        self.binary.add_command_line_options("--verbose")
-        self.profile = FirefoxProfile(profile_directory=join(dir,FIREFOX_PROFILE))
-        self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
-        self.profile.set_preference("extensions.torlauncher.start_tor", False)
-        self.profile.update_preferences()
 
 
     def __enter__(self):
@@ -43,7 +38,19 @@ class ProxiedBrowser(object):
             logger.info("Waiting for proxy to start...")
             sleep(1)
 
+        logger.info("Starting Xvfb virtual display")
+        self.vdisplay = Xvfb(width=1280, height=740)
+        self.vdisplay.start()
+
         logger.info("Webdriver starting..")
+
+        self.binary = FirefoxBinary(firefox_path=join(self.dir, FIREFOX_PATH), log_file=open("firefox.log", "w"))
+        self.binary.add_command_line_options("--verbose")
+        self.profile = FirefoxProfile(profile_directory=join(self.dir, FIREFOX_PROFILE))
+        self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
+        self.profile.set_preference("extensions.torlauncher.start_tor", False)
+        self.profile.update_preferences()
+
         try:
             self.driver = webdriver.Firefox(firefox_binary=self.binary, firefox_profile=self.profile)
             sleep(10) # wait until homepage etc have loaded.
@@ -61,13 +68,15 @@ class ProxiedBrowser(object):
         capture_files = self.proxy.consume_results()
         responses = list()
         for capture_file in capture_files:
-            responses += extract_from_capturefile(capture_file)                
+            responses += extract_from_capturefile(capture_file)
             os.remove(capture_file)
         return responses
 
     def __exit__(self, type, value, traceback):
         logging.info("Closing Webdriver")
         self.driver.close()
+        logging.info("Closing virtual display")
+        self.vdisplay.stop()
         logging.info("Closing Proxy")
         self.proxy.close()
         logger.info("Closing Tor")

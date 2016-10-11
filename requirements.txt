@@ -1,3 +1,4 @@
 bitstring==3.1.5
 requests==2.11.1
 selenium==2.53.6
+xvfbwrapper==0.2.8

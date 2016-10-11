@@ -3,6 +3,32 @@ import json
 import logging
 from tamperfree.browser import ProxiedBrowser
 
+logger = logging.getLogger(__name__)
+
+class MismatchedHashes(object):
+    def __init__(self, wrong_hashes):
+        self.hashes = wrong_hashes
+
+    def __str__(self):
+        return "The following hashes do not match with the stamped hashes:\n{}".\
+            format("\n".join([k + " " + v + "(expected: " + self.hashes[k] + ")" for k,v in wrong_hashes]))
+
+class MissingHashes(object):
+    def __init__(self, missing_hashes):
+        self.hashes = missing_hashes
+
+    def __str__(self):
+        return "Missing hashes:\n{}".\
+            format("\n".join([str(v) for v in self.hashes]))
+
+class ExtraneousHashes(object):
+    def __init__(self, new_hashes):
+        self.hashes = new_hashes
+
+    def __str__(self):
+        return "Extraneous hashes:\n{}".\
+            format("\n".join([str(v) for v in self.hashes]))
+
 class SiteContentStamp(object):
     def __init__(self, hashes = None):
         self.hashes = dict()
@@ -11,19 +37,35 @@ class SiteContentStamp(object):
                 self.hashes[k] = v
 
     def verify_against(self, other):
+        """
+        Look for differences between the hashes in this stamp and the other stamp.
+        Looks for missing or new hashes, in case content has been deleted or added.
+        Then it looks for hashes that do not match. The goal here is to try and
+        explain the results as best as possible so that we know why something has
+        gone wrong.
+
+        Returns true and an empty list if the verification succeeded. Otherwise
+        returns false and a list of reasons why the verification failed.
+        """
         # O(n2)
+
+        new_hashes = []
+        wrong_hashes = []
+        for k, v in other.hashes.iteritems():
+            if k not in self.hashes:
+                new_hashes.append((k, v))
+            elif self.hashes[k] != v:
+                wrong_hashes.append((k, v))
+
+        missing_hashes = [k for k in self.hashes if k not in other.hashes]
+
         reasons = []
-        if len(self.hashes) > len(other.hashes):
-            reasons.append("Missing content, supplied set has less hashes.")
-        elif len(self.hashes) < len(other.hashes):
-            reasons.append("Extraneous content, supplied set has more hashes. ")
-
-        wrong_hashes = [(k,v,self.hashes[k]) for k,v in other.hashes.iteritems() if self.hashes[k] != v]
-
-        if len(wrong_hashes) > 0:
-            reasons.append(
-            "The following hashes do not match with the stamped hashes:\n{}".\
-            format("\n".join([str(h) for h in wrong_hashes])))
+        if new_hashes:
+            reasons.append(ExtraneousHashes(new_hashes))
+        if missing_hashes:
+            reasons.append(MissingHashes(missing_hashes))
+        if wrong_hashes:
+            reasons.append(MismatchedHashes(wrong_hashes))
 
         return len(reasons) == 0, reasons
 
@@ -32,7 +74,7 @@ class SiteContentStamp(object):
         h.update(_b.body)
         hash = h.hexdigest()
         self.hashes[_b.request.path] = hash
-        print(_b.request.path, hash)
+        logger.info("Added hash " + str((_b.request.path, hash)))
         return hash
 
     def __str__(self):

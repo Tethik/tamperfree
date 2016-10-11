@@ -9,10 +9,38 @@ from os.path import join
 def update_browser(args):
     download_latest_tor_browser_version(args.dir)
 
+def safe_filename(filename):
+    keepcharacters = (' ', '_', '.')
+    return "".join(c for c in filename if c.isalnum() or c in keepcharacters).\
+        rstrip()
+
+class UnsupportedUrl(Exception):
+    pass
+
+class NotAHiddenService(Exception):
+    pass
+
+def check_and_fix_url(url):
+    if url.startswith("https://"):
+        raise UnsupportedUrl("HTTPS urls are not supported.")
+    if not url.endswith(".onion"):
+        raise NotAHiddenService("""
+The url given does not end in \".onion\". This program's purpose is to verify
+against Tor Hidden service websites. Using this to verify against websites on
+other networks is probably not going to work due to distinguishability.
+""")
+    if not url.startswith("http://"):
+        if "://" in url:
+            raise UnsupportedUrl("Unsupported protocol.")
+        url = "http://"+url
+    return url
+
 def verify(args):
-    stamped_checksums = load(join(args.dir, "stamped_hashes"))
+    filename = safe_filename(args.url)
+    stamped_checksums = load(join(args.dir, filename))
+    # print(stamped_checksums)
     s = fetch_hashes(args.dir, args.url)
-    print(s)
+    # print(s)
     result, reasons = stamped_checksums.verify_against(s)
     if result:
         print("Verification succeeded. No tamper detected.")
@@ -21,13 +49,23 @@ def verify(args):
         for r in reasons:
             print(r)
 
-
 def stamp(args):
+    filename = safe_filename(args.url)
     s = fetch_hashes(args.dir, args.url)
-    print(s)
-    s.save(join(args.dir, "stamped_hashes"))
+    s.save(join(args.dir, filename))
+    print("Current state has been stamped.")
 
 def main(args):
+    try:
+        if args.url:
+            args.url = check_and_fix_url(args.url)
+    except UnsupportedUrl as ex:
+        print(ex)
+        return False
+    except NotAHiddenService as ex:
+        logging.warn(ex)
+        # continue..
+
     args.func(args)
     pass
 
@@ -61,6 +99,7 @@ Downloads the latest version of Tor Browser.
     #parser.add_argument('--single', default=True, help='Whether or not only the given url will be crawled.')
     #parser.add_argument('--crawl', default=False, help='Whether or not the url should be crawled on all links')
     args = parser.parse_args()
+
 
     logging.basicConfig(stream=sys.stdout, level=args.log_level)
     main(args)

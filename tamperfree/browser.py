@@ -46,54 +46,23 @@ class ProxiedBrowser(object):
         logger.info("Webdriver starting..")
         try:
             self.driver = webdriver.Firefox(firefox_binary=self.binary, firefox_profile=self.profile)
-            sleep(1)
+            sleep(10) # wait until homepage etc have loaded.
         except Exception as ex:
             self.proxy.close()
             raise ex
 
-        # Set up the proxy settings.
-        # proxy_host = 'localhost'
-        # self.profile.set_preference("network.proxy.type", 1)
-        # self.profile.set_preference("network.proxy.http", proxy_host)
-        # self.profile.set_preference("network.proxy.http_port", self.proxy_port)
-        # self.profile.set_preference("network.proxy.https", proxy_host)
-        # self.profile.set_preference("network.proxy.https_port", self.proxy_port)
-        # self.profile.set_preference("network.proxy.ssl", proxy_host)
-        # self.profile.set_preference("network.proxy.ssl_port", self.proxy_port)
-        # self.profile.set_preference("network.proxy.ftp", proxy_host)
-        # self.profile.set_preference("network.proxy.ftp_port", self.proxy_port)
-        # self.profile.set_preference("network.proxy.socks", proxy_host)
-        # self.profile.set_preference("network.proxy.socks_port", self.proxy_port)
-
-
-        # self.profile.set_preference("extensions.torbutton.banned_ports", "{socks_port},{control_port}".format(self.proxy_port, self.tor_control_port))
-        # self.profile.set_preference("extensions.torbutton.block_disk", False)
-        # self.profile.set_preference("extensions.torbutton.custom.socks_host", proxy_host)
-        # self.profile.set_preference("extensions.torbutton.custom.socks_port", self.proxy_port)
-        # self.profile.set_preference("extensions.torbutton.inserted_button", True)
-        # self.profile.set_preference("extensions.torbutton.launch_warning", False)
-        # self.profile.set_preference("extensions.torbutton.loglevel", 2)
-        # self.profile.set_preference("extensions.torbutton.logmethod", 0)
-        # self.profile.set_preference("extensions.torbutton.settings_method", "custom")
-        # self.profile.set_preference("extensions.torbutton.socks_port", proxy_port)
-        # self.profile.set_preference("extensions.torbutton.use_privoxy", False)
-        # self.profile.set_preference("extensions.torlauncher.control_port", self.tor_control_port)
-        # self.profile.set_preference("extensions.torlauncher.loglevel", 2)
-        # self.profile.set_preference("extensions.torlauncher.logmethod", 0)
-        # self.profile.set_preference("extensions.torlauncher.prompt_at_startup", False)
-        # self.profile.set_preference("extensions.torlauncher.start_tor", False)
         return self
 
     def get(self, url):
         logger.info("Fetching {url}".format(url=url))
         self.proxy.consume_results() # clear anything previous, e.g the browsers homepage
         self.driver.get(url)
-        sleep(30)
+        sleep(30) # lazy way of ensuring that the whole page gets loaded.
         capture_files = self.proxy.consume_results()
         responses = list()
         for capture_file in capture_files:
-            for response in extract_from_capturefile(capture_file):
-                responses.append(response)
+            responses += extract_from_capturefile(capture_file)                
+            os.remove(capture_file)
         return responses
 
     def __exit__(self, type, value, traceback):
@@ -116,7 +85,6 @@ if __name__ == "__main__":
         logging.info("Hashes:")
         for _r in r:
             h = hashlib.sha256()
-            # logger.info(_r)
             if isinstance(_r, bytes):
                 h.update(_r)
             else:

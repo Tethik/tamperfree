@@ -5,37 +5,41 @@ from tamperfree.browser import ProxiedBrowser
 
 class SiteContentStamp(object):
     def __init__(self, hashes = None):
-        self.hashes = set()
+        self.hashes = dict()
         if hashes:
-            self.hashes = set(hashes)
+            for k,v in hashes:
+                self.hashes[k] = v
 
     def verify_against(self, other):
-        hashes = other.hashes
+        # O(n2)
         reasons = []
-        if len(self.hashes) > len(hashes):
+        if len(self.hashes) > len(other.hashes):
             reasons.append("Missing content, supplied set has less hashes.")
-        elif len(self.hashes) < len(hashes):
+        elif len(self.hashes) < len(other.hashes):
             reasons.append("Extraneous content, supplied set has more hashes. ")
 
-        wrong_hashes = [h for h in hashes if h not in self.hashes]
+        wrong_hashes = [(k,v,self.hashes[k]) for k,v in other.hashes.iteritems() if self.hashes[k] != v]
 
         if len(wrong_hashes) > 0:
             reasons.append(
             "The following hashes do not match with the stamped hashes:\n{}".\
-            format("\n".join(wrong_hashes)))
+            format("\n".join([str(h) for h in wrong_hashes])))
 
         return len(reasons) == 0, reasons
 
     def add(self, _b):
         h = hashlib.sha256()
-        h.update(_b)
-        self.hashes.add(h.hexdigest())
+        h.update(_b.body)
+        hash = h.hexdigest()
+        self.hashes[_b.request.path] = hash
+        print(_b.request.path, hash)
+        return hash
 
     def __str__(self):
-        return "\n".join(self.hashes)
+        return "\n".join([str(h) for h in self.hashes.iteritems()])
 
     def save(self, file):
-        json.dump({ "hashes": list(self.hashes) }, open(file, "w"))
+        json.dump({ "hashes": list(self.hashes.iteritems()) }, open(file, "w"))
 
 
 def _object_hook(dct):

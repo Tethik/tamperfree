@@ -21,7 +21,20 @@ There may be bugs and/or security vulnerabilities*.
 ## issues
 Does not verify the order of requests. Meaning that the server could perhaps order the scripts in such a way to maliciously get a different behaviour.
 
+Sometimes the Browser will not connect. Unsure why.
+
+Lots of folders are created in /tmp/ by Selenium. At least for me on a smaller vm this leads to disk space running out.
+
+alert("lel") stops the verification...
+
+
+
+## ignore this, just some notes.
+
 /tor-browser_en-US/Browser/TorBrowser/Data/Tor/torrc
 /tor-browser_en-US/Browser/TorBrowser/Tor
 
 $LD_LIBRARY_PATH=. ./tor
+
+# testing
+My burn service: npjhj3yqy7e7xntn.onion

@@ -8,8 +8,9 @@ def start_tor(dir):
     cmd = "LD_LIBRARY_PATH={path} {path}/tor -f {torrc}".\
         format(path=abspath(join(dir,TOR_EXECUTABLE_DIR)),
             torrc=abspath(join(dir, TORRC_PATH)))
-    process = Popen(cmd, shell=True)
+    process = Popen(cmd, stdout=open(join(dir, "tor.log"), "w"), shell=True)
     return process
 
 if __name__ == "__main__":
+    print("Starting tor...")
     start_tor("").communicate()

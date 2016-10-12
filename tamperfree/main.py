@@ -21,6 +21,13 @@ class NotAHiddenService(Exception):
     pass
 
 def check_and_fix_url(url):
+    """
+    Attempts to check and fix the given url in order to avoid problems later.
+    Gives warnings if the https or non-onion url is given.
+
+    Todo: regex check to fix urls ending with /blablabla and other problems.
+    """
+
     if url.startswith("https://"):
         raise UnsupportedUrl("HTTPS urls are not supported.")
     if not url.endswith(".onion"):
@@ -38,9 +45,7 @@ other networks is probably not going to work due to distinguishability.
 def verify(args):
     filename = safe_filename(args.url)
     stamped_checksums = load(join(args.dir, filename))
-    # print(stamped_checksums)
     s = fetch_hashes(args.dir, args.url)
-    # print(s)
     result, reasons = stamped_checksums.verify_against(s)
     if result:
         print("Verification succeeded. No tamper detected.")
@@ -55,21 +60,8 @@ def stamp(args):
     s.save(join(args.dir, filename))
     print("Current state has been stamped.")
 
-def main(args):
-    try:
-        if args.url:
-            args.url = check_and_fix_url(args.url)
-    except UnsupportedUrl as ex:
-        print(ex)
-        return False
-    except NotAHiddenService as ex:
-        logging.warn(ex)
-        # continue..
 
-    args.func(args)
-    pass
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -93,13 +85,22 @@ Downloads the latest version of Tor Browser.
     parser_update_browser.set_defaults(func=update_browser)
 
     parser.add_argument('--proxy-port', default='8899', help='Port used to eavesdrop on traffic between the Tor Browser and the Tor proxy')
-    parser.add_argument('--log-level', default='INFO', help='DEBUG, INFO, WARNING, ERROR, CRITICAL')
-    parser.add_argument('--dir', default='tamperfree_data', help='Directory used to store stamps and the Tor Browser executable.')
-    #parser.add_argument('git', help='Git repository to verify against')
-    #parser.add_argument('--single', default=True, help='Whether or not only the given url will be crawled.')
-    #parser.add_argument('--crawl', default=False, help='Whether or not the url should be crawled on all links')
-    args = parser.parse_args()
+    parser.add_argument('--log-level', default='WARNING', help='DEBUG, INFO, WARNING, ERROR, CRITICAL')
+    parser.add_argument('--dir', default='.tamperfree_data', help='Directory used to store stamps and the Tor Browser executable.')
+    argv = parser.parse_args()
 
+    logging.basicConfig(stream=sys.stderr, level=argv.log_level)
 
-    logging.basicConfig(stream=sys.stdout, level=args.log_level)
-    main(args)
+    try:
+        if "url" in argv:
+            argv.url = check_and_fix_url(argv.url)
+    except UnsupportedUrl as ex:
+        print(ex)
+        return False
+    except NotAHiddenService as ex:
+        logging.warn(ex)
+
+    argv.func(argv)
+
+if __name__ == "__main__":
+    main()

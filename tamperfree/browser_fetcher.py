@@ -21,7 +21,7 @@ def download_latest_tor_browser_version(dir):
         os.makedirs(dir)
     except:
         pass
-    logger.info("Finding the latest version of Tor Browser.")
+    print("Finding the latest version of Tor Browser.")
     dist = requests.get(DIST_URL)
     # Versions are numbers in the form of X.Y.Z
     versions = re.findall('\d\.\d\.\d', dist.text)
@@ -29,7 +29,7 @@ def download_latest_tor_browser_version(dir):
     installed_version = _current_tor_browser_version(dir)
 
     if installed_version >= latest_version:
-        logger.info("Latest version is already downloaded. Quitting.")
+        print("Latest version is already downloaded. Quitting.")
         return
 
     filename = "tor-browser-linux64-{version}_en-US.tar.xz".\
@@ -37,7 +37,7 @@ def download_latest_tor_browser_version(dir):
     url = "https://dist.torproject.org/torbrowser/{version}/{filename}".\
         format(version=latest_version, filename=filename)
 
-    logger.info("Downloading Tor Browser version {version}.".\
+    print("Downloading Tor Browser version {version}.".\
         format(version=latest_version))
     r = requests.get(url, stream=True)
     localfile = join(dir, filename)
@@ -47,7 +47,7 @@ def download_latest_tor_browser_version(dir):
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
 
-    logger.info("Extracting...")
+    print("Extracting...")
     # Decompress using tar xf
     if call(["tar", "xf", filename], cwd=dir):
         logger.error("Decompression using `tar` failed. Is tar installed?")
@@ -57,7 +57,7 @@ def download_latest_tor_browser_version(dir):
     with open(join(dir, "browser_version"), "w") as f:
         f.write(latest_version)
 
-    logger.info("Latest version is downloaded.")
+    print("Latest version is now downloaded.")
 
 if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

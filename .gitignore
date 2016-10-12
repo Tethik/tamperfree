@@ -88,4 +88,4 @@ ENV/
 # Rope project settings
 .ropeproject
 
-tamperfree_data/
+.tamperfree_data/

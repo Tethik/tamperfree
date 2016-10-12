@@ -32,7 +32,6 @@ def _parse_response(bytes):
         splits = h.split(":")
         headers[splits[0]] = splits[1].strip()
 
-    # logger.info(headers)
     return HttpResponse(status_line, headers, body.tobytes())
 
 def _parse_request(bytes, path):
@@ -51,7 +50,6 @@ def _parse_request(bytes, path):
 
 def extract_from_raw(text):
     # Find responses. Needs to be improved. Currently putting HTTP/1.1 in the body or headers could trick this.
-    # Also HTTP/2.0 is probably a thing soon.
     request_re = re.compile('(GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|OPTIONS|PATCH) ([^\n]+) HTTP\/\d\.\d')
     response_re = re.compile('HTTP/\d\.\d (\d+) ([A-Z ]+)')
     lookup = dict()
@@ -65,39 +63,34 @@ def extract_from_raw(text):
         response_matches.append(m)
 
     matches = sorted(request_matches + response_matches, key=lambda x: x.start())
-    print("After sort")
+    logger.info("After sort")
     for m in matches:
-        print(m.start(), m.groups())
+        logger.info(m.start(), m.groups())
 
-    print()
-    print("***************")
+    logger.info("")
+    logger.info("***************")
 
     requests = [] # assuming fifo. i.e. first response is replying to first request.
     responses = []
 
     def _parse(requests, responses, match, data):
-        print(match.start(), match.groups())
-        # print(data)
-        # print(requests, responses, request_iterator)
+        logger.info(match.start(), match.groups())
         if lookup[match.start()] == "request":
             request = _parse_request(data, match.group(0))
             requests.append(request)
-            # print(request.path)
         elif lookup[match.start()] == "response":
             response = _parse_response(data)
             response.request = requests[0]
             requests.pop(0)
             responses.append(response)
-            # print(response.status_line)
 
     if len(matches) < 2:
         return []
-        
+
     previous = matches[0]
     for current in matches[1:]:
         start = previous.start()
         end = current.start()
-        # print(start, end)
         data = text[start:end]
         _parse(requests, responses, previous, data)
         previous = current
@@ -106,8 +99,8 @@ def extract_from_raw(text):
     data = text[previous.start():len(text)]
     _parse(requests, responses, previous, data)
 
-    print()
-    print("***************")
+    logger.info("")
+    logger.info("***************")
 
     return responses
 

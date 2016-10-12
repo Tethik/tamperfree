@@ -64,7 +64,7 @@ class ProxiedBrowser(object):
         logger.info("Fetching {url}".format(url=url))
         self.proxy.consume_results() # clear anything previous, e.g the browsers homepage
         self.driver.get(url)
-        sleep(30) # lazy way of ensuring that the whole page gets loaded.
+        sleep(10) # lazy way of ensuring that the whole page gets loaded.
         capture_files = self.proxy.consume_results()
         responses = list()
         for capture_file in capture_files:

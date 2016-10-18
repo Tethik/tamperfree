@@ -6,7 +6,7 @@ setup(
     packages=find_packages(exclude=('tests', 'tests.*')),
     author='Joakim Uddholm',
     author_email='joakim@uddholm.com',
-    license='MIT',
+    license='GPL',
     description='A tool to verify static content on Tor hidden services against tamper.',
     long_description=open('README.md').read(),
     install_requires=open('requirements.txt').read().split(),

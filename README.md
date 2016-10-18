@@ -18,8 +18,6 @@ On fedora:
 
 I plan to eventually package this nicely.
 
-
-
 ## usage
 To update/download the latest tor browser version for selenium to use.
 `tamperfree update_browser`
@@ -34,10 +32,13 @@ path has been tampered with, which paths were missing or which were added.
 `tamperfree verify <onionurl>`
 
 ## todo
+0. check if Stem can be used to replace my own tor process code.
 1. Tests.
 2. Packaging (fedora for now, since that's what I'm running).
 3. Refactor http parsing.
 4. Uniform random for running the program over a period of time. How do we do this?
+5. Crawling? Although I feel that ruins the indistinguishable part in terms of
+user behaviour.
 
 ## issues / notes
 Does not verify the order of requests. Meaning that the server could perhaps(?)

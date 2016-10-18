@@ -45,7 +45,7 @@ other networks is probably not going to work due to distinguishability.
 def verify(args):
     filename = safe_filename(args.url)
     stamped_checksums = load(join(args.dir, filename))
-    s = fetch_hashes(args.dir, args.url)
+    s = fetch_hashes(args.dir, args.url, args.tor_port, args.launch_tor)
     result, reasons = stamped_checksums.verify_against(s)
     if result:
         print("Verification succeeded. No tamper detected.")
@@ -53,13 +53,13 @@ def verify(args):
         print("Verification failed.")
         for r in reasons:
             print(r)
+    return result, reasons # just to make testing easier.
 
 def stamp(args):
     filename = safe_filename(args.url)
-    s = fetch_hashes(args.dir, args.url)
+    s = fetch_hashes(args.dir, args.url, args.tor_port, args.launch_tor)
     s.save(join(args.dir, filename))
     print("Current state has been stamped.")
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -85,6 +85,8 @@ Downloads the latest version of Tor Browser.
     parser_update_browser.set_defaults(func=update_browser)
 
     parser.add_argument('--proxy-port', default='8899', help='Port used to eavesdrop on traffic between the Tor Browser and the Tor proxy')
+    parser.add_argument('--tor-port', default='9150', help='Port used to connect to local Tor process')
+    parser.add_argument('--launch-tor', default=True, help='Set to false if you want to use an existing tor process. Make sure to set the tor port in that case.')
     parser.add_argument('--log-level', default='WARNING', help='DEBUG, INFO, WARNING, ERROR, CRITICAL')
     parser.add_argument('--dir', default='.tamperfree_data', help='Directory used to store stamps and the Tor Browser executable.')
     argv = parser.parse_args()

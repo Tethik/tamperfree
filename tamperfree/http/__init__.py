@@ -65,7 +65,7 @@ def extract_from_raw(text):
     matches = sorted(request_matches + response_matches, key=lambda x: x.start())
     logger.info("After sort")
     for m in matches:
-        logger.info(m.start(), m.groups())
+        logger.info(str((m.start(), m.groups())))
 
     logger.info("")
     logger.info("***************")
@@ -74,7 +74,6 @@ def extract_from_raw(text):
     responses = []
 
     def _parse(requests, responses, match, data):
-        logger.info(match.start(), match.groups())
         if lookup[match.start()] == "request":
             request = _parse_request(data, match.group(0))
             requests.append(request)

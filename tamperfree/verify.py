@@ -2,16 +2,18 @@ import hashlib
 import json
 import logging
 from tamperfree.browser import ProxiedBrowser
+from tamperfree.tor_process import TorProcess
 
 logger = logging.getLogger(__name__)
 
 class MismatchedHashes(object):
-    def __init__(self, wrong_hashes):
-        self.hashes = wrong_hashes
+    def __init__(self, hashes, wrong_hashes):
+        self.hashes = hashes
+        self.wrong_hashes = wrong_hashes
 
     def __str__(self):
         return "The following hashes do not match with the stamped hashes:\n{}".\
-            format("\n".join([k + " " + v + "(expected: " + self.hashes[k] + ")" for k,v in wrong_hashes]))
+            format("\n".join([k + " " + v + "(expected: " + self.hashes[k] + ")" for k,v in self.wrong_hashes]))
 
 class MissingHashes(object):
     def __init__(self, missing_hashes):
@@ -65,7 +67,7 @@ class SiteContentStamp(object):
         if missing_hashes:
             reasons.append(MissingHashes(missing_hashes))
         if wrong_hashes:
-            reasons.append(MismatchedHashes(wrong_hashes))
+            reasons.append(MismatchedHashes(self.hashes, wrong_hashes))
 
         return len(reasons) == 0, reasons
 
@@ -90,11 +92,20 @@ def _object_hook(dct):
 def load(file):
     return json.load(open(file), object_hook=_object_hook)
 
-def fetch_hashes(dir, url):
+def fetch_hashes(dir, url, tor_port = 9150, launch_tor = True):
     # Fetches the hashes for a single url.
     stamp = SiteContentStamp()
-    with ProxiedBrowser(dir, 8899) as b:
-        r = b.get(url)
-        for _r in r:
-            stamp.add(_r)
+    def fetch_stamps():
+        with ProxiedBrowser(dir, tor_port=tor_port) as b:
+            r = b.get(url)
+            for _r in r:
+                stamp.add(_r)
+
+
+    if launch_tor:
+        with TorProcess(dir, port=tor_port):
+            fetch_stamps()
+    else:
+        fetch_stamps()
+
     return stamp

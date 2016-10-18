@@ -7,19 +7,20 @@ from os.path import join
 
 logger = logging.getLogger(__name__)
 CONNECTION_TIMEOUT = 10
-TOR_PORT = 9050 #9150
 
 class TcpChannel(threading.Thread):
-    def __init__(self, conn, outfile):
+    def __init__(self, conn, tor_port, outfile):
         threading.Thread.__init__(self)
         self.conn = conn
         self.outfile = outfile
         self._stop_proxy = False
+        self.tor_port = tor_port
 
     def run(self):
         with open(self.outfile, "wb") as fd:
             try:
-                self.remote_conn = socket.create_connection(("127.0.0.1", TOR_PORT))
+                logger.info("Connecting to {}".format(str(("127.0.0.1", self.tor_port))))
+                self.remote_conn = socket.create_connection(("127.0.0.1", self.tor_port))
                 self._proxy(self.remote_conn, fd)
             except Exception as ex:
                 logger.error(ex)
@@ -54,28 +55,31 @@ class TcpChannel(threading.Thread):
         self._stop_proxy = True
 
     def close(self):
-        if self.remote_conn:
+        try:
             self.remote_conn.close()
             logger.info('Closing remote socket')
+        except:
+            pass
         self.conn.close()
         logger.info('Closing client socket')
 
 
 class TCP(threading.Thread):
     """
-    Copied/Modified from proxy.py github
+    Copied and Modified from proxy.py github
     """
 
-    def __init__(self, cap_dir, hostname='127.0.0.1', port=8899, backlog=5):
+    def __init__(self, cap_dir, hostname='127.0.0.1', tor_port=9150, backlog=5):
         threading.Thread.__init__(self)
         self.hostname = hostname
-        self.port = port
         self.counter = 1
         self.stop = False
         self.backlog = backlog
         self.running = False
         self.results = []
         self.cap_dir = cap_dir
+        self.tor_port = tor_port
+        self.threads = []
 
     def consume_results(self):
         r = self.results
@@ -84,12 +88,13 @@ class TCP(threading.Thread):
 
     def run(self):
         try:
-            logger.info('Starting server on port %d' % self.port)
+            logger.info('Starting proxy server..')
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.settimeout(0.5)
-            self.socket.bind((self.hostname, self.port))
+            self.socket.bind((self.hostname, 0))
             self.socket.listen(self.backlog)
+            self.port = self.socket.getsockname()[1] # hack to avoid address reuse errors...
             self.threads = []
 
             while not self.stop:
@@ -103,7 +108,7 @@ class TCP(threading.Thread):
                 logger.debug('Accepted connection %r at address %r' % (conn, addr))
                 outfile = join(self.cap_dir, '%s.cap' % self.counter)
                 self.results.append(outfile)
-                tor = TcpChannel(conn, outfile)
+                tor = TcpChannel(conn, self.tor_port, outfile)
                 self.threads.append(tor)
                 self.counter += 1
                 tor.start()
@@ -113,17 +118,19 @@ class TCP(threading.Thread):
             logger.exception('Exception while running the server %r' % e)
         finally:
             logger.info('Closing server socket')
+            self.stop = True
             self.socket.close()
             logger.info('Closing down any threads that may still be alive.')
             for thread in self.threads:
                 if thread.is_alive():
+                    thread.stop()
                     thread.join(CONNECTION_TIMEOUT)
                 if thread.is_alive():
                     logger.info('Encountered a stubborn thread. Attempting close.')
-                    thread.stop()
+                    thread.close()
                     thread.join(CONNECTION_TIMEOUT / 2.0)
                 if thread.is_alive():
-                    raise RuntimeError("Proxy-Thread wont stop.")
+                    raise RuntimeError("Proxy-Thread wont stop :(")
 
     def close(self):
         self.stop = True

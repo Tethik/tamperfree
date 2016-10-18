@@ -35,8 +35,8 @@ class ProxiedBrowser(object):
             sleep(1)
 
         logger.info("Starting Xvfb virtual display")
-        # self.vdisplay = Xvfb(width=1280, height=740)
-        # self.vdisplay.start()
+        self.vdisplay = Xvfb(width=1280, height=740)
+        self.vdisplay.start()
 
         logger.info("Webdriver starting..")
         self.binary = FirefoxBinary(firefox_path=join(self.dir, FIREFOX_PATH), log_file=open("firefox.log", "w"))
@@ -74,7 +74,7 @@ class ProxiedBrowser(object):
         logging.info("Closing webdriver")
         self.driver.quit()
         logging.info("Closing virtual display")
-        # self.vdisplay.stop()
+        self.vdisplay.stop()
         logging.info("Closing proxy")
         self.proxy.close()
         self.proxy.join()

@@ -50,7 +50,7 @@ class ProxiedBrowser(object):
 
         try:
             self.driver = webdriver.Firefox(firefox_binary=self.binary, firefox_profile=self.profile)
-            sleep(2) # wait until homepage etc have loaded.
+            sleep(2) # hack: wait until homepage etc have loaded.
         except Exception as ex:
             self.proxy.close()
             raise ex
@@ -61,7 +61,7 @@ class ProxiedBrowser(object):
 
     def get(self, url):
         print("Fetching {url}".format(url=url))
-        self.proxy.consume_results() # clear anything previous, e.g the browsers homepage
+        self.proxy.consume_results() # clear anything previous, e.g the browsers homepage, whatever update checkers etc.
         self.driver.get(url)
         capture_files = self.proxy.consume_results()
         responses = list()

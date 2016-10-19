@@ -1,6 +1,5 @@
 from flags import inconsiderate
 from tamperfree.browser import ProxiedBrowser
-from selenium.webdriver.common.by import By
 from tamperfree.browser_fetcher import download_latest_tor_browser_version
 from tamperfree.tor_process import TorProcess
 
